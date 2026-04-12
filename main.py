@@ -3,10 +3,11 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import requests
+from datetime import datetime
 
 app = FastAPI()
 
-# ✅ Enable CORS
+# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,47 +16,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Home route
 @app.get("/")
 def home():
     return {"message": "AI Agent is running 🚀"}
 
-# ✅ Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
-# ✅ Load family data from file
+# ✅ Load family data
 def load_data():
     try:
         with open("data.txt", "r", encoding="utf-8") as f:
             return f.read()
-    except Exception as e:
+    except:
         return ""
 
-# ✅ Chat endpoint
+# ✅ Real-time date & time
+def get_realtime_info():
+    now = datetime.now()
+    return f"Current date: {now.strftime('%Y-%m-%d')}, Current time: {now.strftime('%H:%M:%S')}"
+
 @app.post("/chat")
 def chat(req: Request):
     try:
-        # 🧠 Load your personal data
         context = load_data()
+        realtime = get_realtime_info()
 
-        # 🧠 Build conversation history
         history_text = ""
         for msg in req.history:
             role = "User" if msg["role"] == "user" else "AI"
             history_text += f"{role}: {msg['content']}\n"
 
-        # 🚀 HYBRID PROMPT (IMPORTANT CHANGE)
         prompt = f"""
-You are a helpful AI assistant.
+You are a smart AI assistant.
 
-You have access to family data and general knowledge.
+You have access to:
+1. Family data
+2. General knowledge
+3. Real-time system info (date/time)
 
 Rules:
-1. If the question is about family → answer from the family data.
-2. If the question is general → answer normally using your knowledge.
-3. If unsure → say you are not sure.
+- If question is about family → use family data
+- If question is about current date/time → use real-time info
+- Otherwise → answer normally
+
+Real-Time Info:
+{realtime}
 
 Family Data:
 {context}
@@ -68,7 +75,6 @@ User: {req.message}
 AI:
 """
 
-        # 🚀 GROQ API CALL
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -84,11 +90,8 @@ AI:
             }
         )
 
-        print("GROQ RESPONSE:", response.text)
-
         data = response.json()
 
-        # ✅ Safe response handling
         if "choices" in data:
             reply = data["choices"][0]["message"]["content"]
         elif "error" in data:
@@ -102,7 +105,6 @@ AI:
         return {"reply": f"Error: {str(e)}"}
 
 
-# ✅ Run server (Render + local)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
