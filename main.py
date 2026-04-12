@@ -25,7 +25,7 @@ class Request(BaseModel):
     message: str
     history: list = []
 
-# ✅ Simple RAG (your personal data)
+# ✅ Simple RAG
 documents = [
     "My name is Harshini",
     "I am a software engineer",
@@ -45,13 +45,11 @@ def chat(req: Request):
     try:
         context = get_context(req.message)
 
-        # Build conversation history
         history_text = ""
         for msg in req.history:
             role = "User" if msg["role"] == "user" else "AI"
             history_text += f"{role}: {msg['content']}\n"
 
-        # Prompt
         prompt = f"""
 You are a helpful assistant.
 
@@ -65,9 +63,9 @@ User: {req.message}
 AI:
 """
 
-        # ✅ HuggingFace API (NEW endpoint)
+        # ✅ HuggingFace working model
         response = requests.post(
-            "https://router.huggingface.co/hf-inference/models/google/flan-t5-large",
+            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2",
             headers={
                 "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
             },
@@ -81,17 +79,15 @@ AI:
 
         print("HF RESPONSE:", response.text)
 
-        # ✅ Handle empty response safely
+        # ✅ Handle empty response
         if response.text.strip() == "":
-            return {"reply": "Model is loading, please try again in a few seconds..."}
+            return {"reply": "Model is loading, please try again..."}
 
-        # ✅ Safe JSON parsing
         try:
             data = response.json()
         except Exception:
             return {"reply": f"Invalid response from HF: {response.text}"}
 
-        # ✅ Handle response
         if isinstance(data, list) and len(data) > 0:
             reply = data[0].get("generated_text", "")
         elif isinstance(data, dict) and "error" in data:
@@ -103,3 +99,13 @@ AI:
 
     except Exception as e:
         return {"reply": f"Error: {str(e)}"}
+
+
+# ✅ IMPORTANT: Port binding (Render + local)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000))  # Render uses PORT, local uses 8000
+    )
