@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI()
 
-# ✅ CORS
+# ✅ Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,11 +46,16 @@ def chat(req: Request):
             role = "User" if msg["role"] == "user" else "AI"
             history_text += f"{role}: {msg['content']}\n"
 
-        # 🧠 Final prompt
+        # 🚀 HYBRID PROMPT (IMPORTANT CHANGE)
         prompt = f"""
-You are a helpful family assistant.
+You are a helpful AI assistant.
 
-Use ONLY the provided family data to answer.
+You have access to family data and general knowledge.
+
+Rules:
+1. If the question is about family → answer from the family data.
+2. If the question is general → answer normally using your knowledge.
+3. If unsure → say you are not sure.
 
 Family Data:
 {context}
@@ -59,9 +64,6 @@ Conversation:
 {history_text}
 
 User: {req.message}
-
-If the answer is not in the family data, say:
-"I don't know from family data."
 
 AI:
 """
@@ -100,7 +102,7 @@ AI:
         return {"reply": f"Error: {str(e)}"}
 
 
-# ✅ Port binding (Render + local)
+# ✅ Run server (Render + local)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
