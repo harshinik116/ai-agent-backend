@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI()
 
-# CORS
+# ✅ Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,14 +15,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ Home route
 @app.get("/")
 def home():
     return {"message": "AI Agent is running 🚀"}
 
+# ✅ Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
+# ✅ Simple RAG (your personal data)
 documents = [
     "My name is Harshini",
     "I am a software engineer",
@@ -36,16 +39,19 @@ def get_context(query):
             return doc
     return ""
 
+# ✅ Chat endpoint
 @app.post("/chat")
 def chat(req: Request):
     try:
         context = get_context(req.message)
 
+        # Build history
         history_text = ""
         for msg in req.history:
             role = "User" if msg["role"] == "user" else "AI"
             history_text += f"{role}: {msg['content']}\n"
 
+        # Prompt
         prompt = f"""
 You are a helpful assistant.
 
@@ -59,6 +65,7 @@ User: {req.message}
 AI:
 """
 
+        # ✅ GROQ API CALL
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -74,9 +81,17 @@ AI:
             }
         )
 
+        print("GROQ RESPONSE:", response.text)
+
         data = response.json()
 
-        reply = data["choices"][0]["message"]["content"]
+        # ✅ Safe handling
+        if "choices" in data:
+            reply = data["choices"][0]["message"]["content"]
+        elif "error" in data:
+            reply = f"Groq Error: {data['error']['message']}"
+        else:
+            reply = str(data)
 
         return {"reply": reply}
 
@@ -84,6 +99,11 @@ AI:
         return {"reply": f"Error: {str(e)}"}
 
 
+# ✅ IMPORTANT: Port binding (Render + local)
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000))
+    )
