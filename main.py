@@ -65,7 +65,7 @@ User: {req.message}
 AI:
 """
 
-        # ✅ HuggingFace NEW API (FIXED)
+        # ✅ HuggingFace API (NEW endpoint)
         response = requests.post(
             "https://router.huggingface.co/hf-inference/models/google/flan-t5-large",
             headers={
@@ -81,9 +81,17 @@ AI:
 
         print("HF RESPONSE:", response.text)
 
-        data = response.json()
+        # ✅ Handle empty response safely
+        if response.text.strip() == "":
+            return {"reply": "Model is loading, please try again in a few seconds..."}
 
-        # ✅ Safe response handling
+        # ✅ Safe JSON parsing
+        try:
+            data = response.json()
+        except Exception:
+            return {"reply": f"Invalid response from HF: {response.text}"}
+
+        # ✅ Handle response
         if isinstance(data, list) and len(data) > 0:
             reply = data[0].get("generated_text", "")
         elif isinstance(data, dict) and "error" in data:
