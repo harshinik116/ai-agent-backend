@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI()
 
-# ✅ Enable CORS
+# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,17 +15,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Home route
 @app.get("/")
 def home():
     return {"message": "AI Agent is running 🚀"}
 
-# ✅ Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
-# ✅ Simple RAG
 documents = [
     "My name is Harshini",
     "I am a software engineer",
@@ -39,7 +36,6 @@ def get_context(query):
             return doc
     return ""
 
-# ✅ Chat endpoint
 @app.post("/chat")
 def chat(req: Request):
     try:
@@ -63,30 +59,27 @@ User: {req.message}
 AI:
 """
 
-        # ✅ HuggingFace working model
+        # ✅ WORKING HF ENDPOINT (NO router issues)
         response = requests.post(
-            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2",
+            "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct",
             headers={
                 "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
             },
             json={
                 "inputs": prompt,
-                "options": {
-                    "wait_for_model": True
-                }
+                "options": {"wait_for_model": True}
             }
         )
 
         print("HF RESPONSE:", response.text)
 
-        # ✅ Handle empty response
         if response.text.strip() == "":
-            return {"reply": "Model is loading, please try again..."}
+            return {"reply": "Model is loading, try again..."}
 
         try:
             data = response.json()
         except Exception:
-            return {"reply": f"Invalid response from HF: {response.text}"}
+            return {"reply": f"Invalid response: {response.text}"}
 
         if isinstance(data, list) and len(data) > 0:
             reply = data[0].get("generated_text", "")
@@ -101,11 +94,10 @@ AI:
         return {"reply": f"Error: {str(e)}"}
 
 
-# ✅ IMPORTANT: Port binding (Render + local)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8000))  # Render uses PORT, local uses 8000
+        port=int(os.environ.get("PORT", 8000))
     )
