@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI()
 
-# ✅ CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -59,34 +59,24 @@ User: {req.message}
 AI:
 """
 
-        # ✅ WORKING HF ENDPOINT (NO router issues)
         response = requests.post(
-            "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
+                "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}",
+                "Content-Type": "application/json"
             },
             json={
-                "inputs": prompt,
-                "options": {"wait_for_model": True}
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant"},
+                    {"role": "user", "content": prompt}
+                ]
             }
         )
 
-        print("HF RESPONSE:", response.text)
+        data = response.json()
 
-        if response.text.strip() == "":
-            return {"reply": "Model is loading, try again..."}
-
-        try:
-            data = response.json()
-        except Exception:
-            return {"reply": f"Invalid response: {response.text}"}
-
-        if isinstance(data, list) and len(data) > 0:
-            reply = data[0].get("generated_text", "")
-        elif isinstance(data, dict) and "error" in data:
-            reply = f"HF Error: {data['error']}"
-        else:
-            reply = str(data)
+        reply = data["choices"][0]["message"]["content"]
 
         return {"reply": reply}
 
@@ -96,8 +86,4 @@ AI:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8000))
-    )
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
