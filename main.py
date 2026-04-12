@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI()
 
-# ✅ Enable CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,17 +15,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Home route
 @app.get("/")
 def home():
     return {"message": "AI Agent is running 🚀"}
 
-# ✅ Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
-# ✅ Simple RAG (your personal data)
 documents = [
     "My name is Harshini",
     "I am a software engineer",
@@ -39,19 +36,16 @@ def get_context(query):
             return doc
     return ""
 
-# ✅ Chat endpoint
 @app.post("/chat")
 def chat(req: Request):
     try:
         context = get_context(req.message)
 
-        # Build history
         history_text = ""
         for msg in req.history:
             role = "User" if msg["role"] == "user" else "AI"
             history_text += f"{role}: {msg['content']}\n"
 
-        # Prompt
         prompt = f"""
 You are a helpful assistant.
 
@@ -65,7 +59,6 @@ User: {req.message}
 AI:
 """
 
-        # ✅ GROQ API CALL
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -73,7 +66,7 @@ AI:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "llama3-8b-8192",
+                "model": "llama-3.1-8b-instant",
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant"},
                     {"role": "user", "content": prompt}
@@ -85,7 +78,6 @@ AI:
 
         data = response.json()
 
-        # ✅ Safe handling
         if "choices" in data:
             reply = data["choices"][0]["message"]["content"]
         elif "error" in data:
@@ -99,7 +91,6 @@ AI:
         return {"reply": f"Error: {str(e)}"}
 
 
-# ✅ IMPORTANT: Port binding (Render + local)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
