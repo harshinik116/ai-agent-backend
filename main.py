@@ -6,7 +6,7 @@ import requests
 
 app = FastAPI()
 
-# CORS
+# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,50 +15,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ Home route
 @app.get("/")
 def home():
     return {"message": "AI Agent is running 🚀"}
 
+# ✅ Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
-documents = [
-    "My name is Harshini",
-    "I am a software engineer",
-    "I love spiritual topics and meditation",
-    "I am learning AI and building agents"
-]
+# ✅ Load family data from file
+def load_data():
+    try:
+        with open("data.txt", "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return ""
 
-def get_context(query):
-    for doc in documents:
-        if any(word.lower() in doc.lower() for word in query.split()):
-            return doc
-    return ""
-
+# ✅ Chat endpoint
 @app.post("/chat")
 def chat(req: Request):
     try:
-        context = get_context(req.message)
+        # 🧠 Load your personal data
+        context = load_data()
 
+        # 🧠 Build conversation history
         history_text = ""
         for msg in req.history:
             role = "User" if msg["role"] == "user" else "AI"
             history_text += f"{role}: {msg['content']}\n"
 
+        # 🧠 Final prompt
         prompt = f"""
-You are a helpful assistant.
+You are a helpful family assistant.
 
-Context:
+Use ONLY the provided family data to answer.
+
+Family Data:
 {context}
 
 Conversation:
 {history_text}
 
 User: {req.message}
+
+If the answer is not in the family data, say:
+"I don't know from family data."
+
 AI:
 """
 
+        # 🚀 GROQ API CALL
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -78,6 +86,7 @@ AI:
 
         data = response.json()
 
+        # ✅ Safe response handling
         if "choices" in data:
             reply = data["choices"][0]["message"]["content"]
         elif "error" in data:
@@ -91,6 +100,7 @@ AI:
         return {"reply": f"Error: {str(e)}"}
 
 
+# ✅ Port binding (Render + local)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
