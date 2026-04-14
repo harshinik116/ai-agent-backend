@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import File, UploadFile
+from datetime import datetime
 import os
 import requests
-from datetime import datetime
+import base64
+
 
 app = FastAPI()
 
@@ -112,3 +115,45 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8000))
     )
+
+
+@app.post("/analyze-image")
+async def analyze_image(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+        base64_image = base64.b64encode(contents).decode("utf-8")
+
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llava-v1.5-7b-4096-preview",  # image model
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "What is in this image?"},
+                            {
+                                "type": "image_url",
+                                "image_url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        ]
+                    }
+                ]
+            }
+        )
+
+        data = response.json()
+
+        if "choices" in data:
+            reply = data["choices"][0]["message"]["content"]
+        else:
+            reply = str(data)
+
+        return {"reply": reply}
+
+    except Exception as e:
+        return {"reply": str(e)}
