@@ -4,10 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import requests
 from datetime import datetime
-import base64
 
 app = FastAPI()
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,14 +16,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Home
 @app.get("/")
 def home():
     return {"message": "AI Agent is running"}
 
+# Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
+# Load data
 def load_data():
     try:
         with open("data.txt", "r", encoding="utf-8") as f:
@@ -31,10 +34,12 @@ def load_data():
     except:
         return ""
 
+# Real-time info
 def get_realtime_info():
     now = datetime.now()
-    return f"Current date: {now.strftime('%Y-%m-%d')}, time: {now.strftime('%H:%M:%S')}"
+    return f"Date: {now.strftime('%Y-%m-%d')} Time: {now.strftime('%H:%M:%S')}"
 
+# Chat endpoint
 @app.post("/chat")
 def chat(req: Request):
     try:
@@ -48,6 +53,11 @@ def chat(req: Request):
 
         prompt = f"""
 You are a smart AI assistant.
+
+Use:
+- Family data
+- Real-time info
+- General knowledge
 
 Real-Time Info:
 {realtime}
@@ -70,51 +80,11 @@ AI:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "llama-3.1-8b-instant",
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ]
-            }
-        )
-
-        data = response.json()
-
-        if "choices" in data:
-            reply = data["choices"][0]["message"]["content"]
-        else:
-            reply = str(data)
-
-        return {"reply": reply}
-
-    except Exception as e:
-        return {"reply": str(e)}
-
-@app.post("/analyze-image")
-async def analyze_image(file: UploadFile = File(...)):
-    try:
-        contents = await file.read()
-        base64_image = base64.b64encode(contents).decode("utf-8")
-
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama-3.2-11b-vision-preview",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [
                     {
                         "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Describe this image"},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                }
-                            }
-                        ]
+                        "content": prompt
                     }
                 ]
             }
@@ -131,3 +101,22 @@ async def analyze_image(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"reply": str(e)}
+
+# Image endpoint (TEMP SAFE VERSION)
+@app.post("/analyze-image")
+async def analyze_image(file: UploadFile = File(...)):
+    try:
+        return {
+            "reply": "Image uploaded successfully. Image AI will be added next 🚀"
+        }
+    except Exception as e:
+        return {"reply": str(e)}
+
+# Run locally (optional)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000))
+    )
