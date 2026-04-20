@@ -114,7 +114,18 @@ async def analyze_image(file: UploadFile = File(...)):
             files={"file": contents}
         )
 
-        data = response.json()
+        # 🔥 DEBUG (IMPORTANT)
+        print("STATUS:", response.status_code)
+        print("RAW RESPONSE:", response.text)
+
+        # ✅ Safe handling
+        if response.status_code != 200:
+            return {"reply": f"HF Error: {response.text}"}
+
+        try:
+            data = response.json()
+        except:
+            return {"reply": "Model is loading... try again in few seconds ⏳"}
 
         if isinstance(data, list) and len(data) > 0:
             reply = data[0].get("generated_text", "")
