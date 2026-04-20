@@ -108,7 +108,7 @@ async def analyze_image(file: UploadFile = File(...)):
         base64_image = base64.b64encode(contents).decode("utf-8")
 
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API_KEY')}",
+            f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key={os.getenv('GEMINI_API_KEY')}",
             headers={
                 "Content-Type": "application/json"
             },
@@ -116,7 +116,7 @@ async def analyze_image(file: UploadFile = File(...)):
                 "contents": [
                     {
                         "parts": [
-                            {"text": "Describe this image in detail"},
+                            {"text": "Describe this image"},
                             {
                                 "inline_data": {
                                     "mime_type": "image/jpeg",
