@@ -8,7 +8,7 @@ import base64
 
 app = FastAPI()
 
-# ✅ CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,17 +17,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Home
+# Home route
 @app.get("/")
 def home():
     return {"message": "AI Agent is running"}
 
-# ✅ Request model
+# Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
-# ✅ Load personal data
+# Load personal data
 def load_data():
     try:
         with open("data.txt", "r", encoding="utf-8") as f:
@@ -35,12 +35,12 @@ def load_data():
     except:
         return ""
 
-# ✅ Real-time info
+# Real-time info
 def get_realtime_info():
     now = datetime.now()
     return f"Date: {now.strftime('%Y-%m-%d')} Time: {now.strftime('%H:%M:%S')}"
 
-# ✅ CHAT (Groq)
+# Chat endpoint (Groq)
 @app.post("/chat")
 def chat(req: Request):
     try:
@@ -100,7 +100,7 @@ AI:
     except Exception as e:
         return {"reply": str(e)}
 
-# ✅ IMAGE (Gemini)
+# Image endpoint (Gemini – FINAL FIXED)
 @app.post("/analyze-image")
 async def analyze_image(file: UploadFile = File(...)):
     try:
@@ -108,7 +108,7 @@ async def analyze_image(file: UploadFile = File(...)):
         base64_image = base64.b64encode(contents).decode("utf-8")
 
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={os.getenv('GEMINI_API_KEY')}",
+            f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API_KEY')}",
             headers={
                 "Content-Type": "application/json"
             },
@@ -141,7 +141,7 @@ async def analyze_image(file: UploadFile = File(...)):
     except Exception as e:
         return {"reply": str(e)}
 
-# ✅ Run locally (optional)
+# Run locally
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
