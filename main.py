@@ -107,12 +107,12 @@ async def analyze_image(file: UploadFile = File(...)):
         contents = await file.read()
 
         response = requests.post(
-            "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
+            "https://router.huggingface.co/hf-inference/models/Salesforce/blip-image-captioning-large",
             headers={
                 "Authorization": f"Bearer {os.getenv('HF_TOKEN')}",
                 "Content-Type": "application/octet-stream"
             },
-            data=contents  # ✅ IMPORTANT CHANGE
+            data=contents
         )
 
         print("STATUS:", response.status_code)
@@ -124,7 +124,7 @@ async def analyze_image(file: UploadFile = File(...)):
         try:
             data = response.json()
         except:
-            return {"reply": "Model loading... try again ⏳"}
+            return {"reply": "Model is loading... try again ⏳"}
 
         if isinstance(data, list) and len(data) > 0:
             reply = data[0].get("generated_text", "")
