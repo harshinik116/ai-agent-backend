@@ -103,20 +103,45 @@ AI:
         return {"reply": str(e)}
 
 # Image endpoint (TEMP SAFE VERSION)
+import base64
+
 @app.post("/analyze-image")
 async def analyze_image(file: UploadFile = File(...)):
     try:
-        return {
-            "reply": "Image uploaded successfully. Image AI will be added next 🚀"
-        }
+        contents = await file.read()
+        base64_image = base64.b64encode(contents).decode("utf-8")
+
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API_KEY')}",
+            headers={
+                "Content-Type": "application/json"
+            },
+            json={
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": "Describe this image in detail"},
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": base64_image
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        )
+
+        data = response.json()
+
+        # ✅ Extract Gemini response
+        if "candidates" in data:
+            reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            reply = str(data)
+
+        return {"reply": reply}
+
     except Exception as e:
         return {"reply": str(e)}
-
-# Run locally (optional)
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8000))
-    )
