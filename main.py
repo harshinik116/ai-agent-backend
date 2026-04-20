@@ -4,10 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import requests
 from datetime import datetime
+import base64
 
 app = FastAPI()
 
-# CORS
+# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,17 +17,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Home
+# ✅ Home
 @app.get("/")
 def home():
     return {"message": "AI Agent is running"}
 
-# Request model
+# ✅ Request model
 class Request(BaseModel):
     message: str
     history: list = []
 
-# Load data
+# ✅ Load personal data
 def load_data():
     try:
         with open("data.txt", "r", encoding="utf-8") as f:
@@ -34,12 +35,12 @@ def load_data():
     except:
         return ""
 
-# Real-time info
+# ✅ Real-time info
 def get_realtime_info():
     now = datetime.now()
     return f"Date: {now.strftime('%Y-%m-%d')} Time: {now.strftime('%H:%M:%S')}"
 
-# Chat endpoint
+# ✅ CHAT (Groq)
 @app.post("/chat")
 def chat(req: Request):
     try:
@@ -82,10 +83,7 @@ AI:
             json={
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "user", "content": prompt}
                 ]
             }
         )
@@ -102,9 +100,7 @@ AI:
     except Exception as e:
         return {"reply": str(e)}
 
-# Image endpoint (TEMP SAFE VERSION)
-import base64
-
+# ✅ IMAGE (Gemini)
 @app.post("/analyze-image")
 async def analyze_image(file: UploadFile = File(...)):
     try:
@@ -112,7 +108,7 @@ async def analyze_image(file: UploadFile = File(...)):
         base64_image = base64.b64encode(contents).decode("utf-8")
 
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API_KEY')}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={os.getenv('GEMINI_API_KEY')}",
             headers={
                 "Content-Type": "application/json"
             },
@@ -135,7 +131,6 @@ async def analyze_image(file: UploadFile = File(...)):
 
         data = response.json()
 
-        # ✅ Extract Gemini response
         if "candidates" in data:
             reply = data["candidates"][0]["content"]["parts"][0]["text"]
         else:
@@ -145,3 +140,12 @@ async def analyze_image(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"reply": str(e)}
+
+# ✅ Run locally (optional)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000))
+    )
