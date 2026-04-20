@@ -109,23 +109,22 @@ async def analyze_image(file: UploadFile = File(...)):
         response = requests.post(
             "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
             headers={
-                "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
+                "Authorization": f"Bearer {os.getenv('HF_TOKEN')}",
+                "Content-Type": "application/octet-stream"
             },
-            files={"file": contents}
+            data=contents  # ✅ IMPORTANT CHANGE
         )
 
-        # 🔥 DEBUG (IMPORTANT)
         print("STATUS:", response.status_code)
-        print("RAW RESPONSE:", response.text)
+        print("RAW:", response.text)
 
-        # ✅ Safe handling
         if response.status_code != 200:
             return {"reply": f"HF Error: {response.text}"}
 
         try:
             data = response.json()
         except:
-            return {"reply": "Model is loading... try again in few seconds ⏳"}
+            return {"reply": "Model loading... try again ⏳"}
 
         if isinstance(data, list) and len(data) > 0:
             reply = data[0].get("generated_text", "")
