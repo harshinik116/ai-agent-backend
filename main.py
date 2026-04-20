@@ -105,34 +105,19 @@ AI:
 async def analyze_image(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        base64_image = base64.b64encode(contents).decode("utf-8")
 
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key={os.getenv('GEMINI_API_KEY')}",
+            "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
             headers={
-                "Content-Type": "application/json"
+                "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
             },
-            json={
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": "Describe this image"},
-                            {
-                                "inline_data": {
-                                    "mime_type": "image/jpeg",
-                                    "data": base64_image
-                                }
-                            }
-                        ]
-                    }
-                ]
-            }
+            files={"file": contents}
         )
 
         data = response.json()
 
-        if "candidates" in data:
-            reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        if isinstance(data, list) and len(data) > 0:
+            reply = data[0].get("generated_text", "")
         else:
             reply = str(data)
 
@@ -140,7 +125,6 @@ async def analyze_image(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"reply": str(e)}
-
 # Run locally
 if __name__ == "__main__":
     import uvicorn
